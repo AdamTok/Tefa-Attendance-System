@@ -32,7 +32,6 @@ confColor = (255, 255, 0)   # BGR- TEAL
 
 face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 recognizer = cv2.face.LBPHFaceRecognizer_create()
-recognizer.read('trainer/trainer.yml')
 
 # Create an instance of the VideoCapture object for webcam
 cap = cv2.VideoCapture(0)
@@ -103,6 +102,11 @@ while True:
 
             for (x, y, w, h) in faces:
                 roi_gray = gray[y:y+h, x:x+w]  # Convert Face to Grayscale
+                
+                # Load the trained model for the current member
+                model_path = os.path.join(os.getcwd(), "Datasets_User", folder_name, "trained", "trainer.yml")
+                recognizer.read(model_path)  # Read the trained model
+                
                 id_, conf = recognizer.predict(roi_gray)  # Recognize Face
 
                 if conf >= 80:
