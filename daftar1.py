@@ -1,32 +1,14 @@
-
-
-import cv2
 import os
 import time
 import mysql.connector
 from mfrc522 import SimpleMFRC522
 import RPi.GPIO as GPIO
+import cv2
 
 reader = SimpleMFRC522()
 
-# Konstanta
-COUNT_LIMIT = 30
-POS = (30, 60)  # kiri-atas
-FONT = cv2.FONT_HERSHEY_COMPLEX  # jenis font untuk teks
-HEIGHT = 1.5  # skala font
-TEXTCOLOR = (0, 0, 255)  # BGR- MERAH
-BOXCOLOR = (255, 0, 255)  # BGR- BIRU
-WEIGHT = 3  # ketebalan font
-FACE_DETECTOR = cv2.CascadeClassifier('/home/hensenpi/Downloads/Tefa-Attendance-System-main/haarcascade_frontalface_default.xml')
-
-# # Untuk setiap orang, masukkan satu id wajah numerik
-# face_id = input('\n----Masukkan User-id dan tekan <enter>----')
-# print("\n [INFO] Menginisialisasi pengambilan wajah. Lihat ke kamera dan tunggu!")
-
 # Membuat instance objek VideoCapture untuk webcam
 cap = cv2.VideoCapture(0)
-
-count = 0
 
 while True:
     text1 = input("Nama anggota: ")
@@ -91,52 +73,24 @@ while True:
         else:
             print("Input tidak valid.")
 
-    # Mengambil gambar selama 15 detik dan menyimpannya di dalam folder baru
+    # Mengambil gambar wajah selama 15 detik dan menyimpannya di dalam folder baru
     start_time = time.time()
     capture_duration = 15  # Durasi pengambilan gambar dalam detik
 
     while time.time() - start_time < capture_duration:
         ret, frame = cap.read()  # Baca frame dari kamera
 
-        # Tampilkan jumlah gambar yang diambil
-        cv2.putText(frame, 'Count:' + str(int(count)), POS, FONT, HEIGHT, TEXTCOLOR, WEIGHT)
-
         # Convert frame dari BGR ke skala abu-abu
         frameGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Buat array faces dengan 4 elemen- koordinat x,y (kiri-atas), lebar, dan tinggi
-        faces = FACE_DETECTOR.detectMultiScale(
-            frameGray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(30, 30)
-        )
+        # Simpan gambar wajah berwarna ke dalam folder 'image' hanya jika file yang sama belum ada
+        file_path = os.path.join(folder_path, 'image', f"foto_{int(time.time())}.jpg")
+        if not os.path.exists(file_path):
+            cv2.imwrite(file_path, frameGray)
 
-        for (x, y, w, h) in faces:
-            # Buat bounding box di sekitar wajah yang terdeteksi
-            cv2.rectangle(frame, (x, y), (x + w, y + h), BOXCOLOR, 3)
-            count += 1  # increment count
+    print("\n [INFO] Pengambilan foto selesai.")
+    break
 
-            # Simpan gambar berwarna yang dibatasi ke dalam folder 'image' hanya jika file yang sama belum ada
-            file_path = os.path.join(folder_path, 'image', f"foto_{int(time.time())}.jpg")
-            if not os.path.exists(file_path):
-                cv2.imwrite(file_path, frame[y:y + h, x:x + w])
-
-        # Tampilkan frame asli kepada pengguna
-        cv2.imshow('Pendaftaran Anggota', frame)
-
-        # Tunggu selama 30 milidetik untuk kejadian tombol (ambil digit penting) dan keluar jika 'ESC' atau 'q' ditekan
-        key = cv2.waitKey(100) & 0xff
-        if key == 27:  # tombol ESC
-            break
-        elif key == 113:  # tombol q
-            break
-
-    if key == 27 or key == 113:
-        break
-
-# Bebaskan webcam dan tutup semua jendela
-print("\n [INFO] Keluar dari Program dan membersihkan hal-hal")
+# Bebaskan webcam
 cap.release()
-cv2.destroyAllWindows()
 GPIO.cleanup()  # Membersihkan GPIO
