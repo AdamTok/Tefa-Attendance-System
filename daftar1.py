@@ -1,144 +1,11 @@
-# import cv2
-# import os
-# import time
-# import mysql.connector
-# from mfrc522 import SimpleMFRC522
 
-# reader = SimpleMFRC522()
-
-# # Constants
-# COUNT_LIMIT = 30
-# POS = (30, 60)  # top-left
-# FONT = cv2.FONT_HERSHEY_COMPLEX  # font type for text overlay
-# HEIGHT = 1.5  # font_scale
-# TEXTCOLOR = (0, 0, 255)  # BGR- RED
-# BOXCOLOR = (255, 0, 255)  # BGR- BLUE
-# WEIGHT = 3  # font-thickness
-# FACE_DETECTOR = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-
-# # # For each person, enter one numeric face id
-# # face_id = input('\n----Enter User-id and press <return>----')
-# # print("\n [INFO] Initializing face capture. Look at the camera and wait!")
-
-# # Create an instance of the VideoCapture object for webcam
-# cap = cv2.VideoCapture(0)
-
-# count = 0
-
-# while True:
-#     text1 = input("Nama anggota: ")
-#     text2 = input("NIM atau ID Pegawai: ")
-    
-#     # Membuat folder berdasarkan nama yang baru diinputkan
-#     folder_name = text2.replace(" ", "_")  # Mengganti spasi dengan underscore untuk nama folder
-#     folder_path = os.path.join(os.getcwd(), "Datasets_User", folder_name)  # Mendapatkan path folder baru
-    
-#     # Validasi apakah folder dataset sudah ada
-#     if os.path.exists(folder_path):
-#         print("Gagal mendaftar, NIM sudah terdaftar.")
-#         continue
-
-#     # Validasi apakah tabel di database sudah ada
-#     db = mysql.connector.connect(
-#         host="localhost",
-#         user="admin",
-#         password="123",
-#         database="AttendanceTefa"
-#     )
-#     cursor = db.cursor()
-#     cursor.execute(f"SHOW TABLES LIKE '{folder_name}'")
-#     if cursor.fetchone():
-#         print("Gagal mendaftar, NIM sudah terdaftar.")
-#         continue
-    
-#     print("Silahkan scan RFID anda.")
-#     reader.write(text1 + "," + text2)
-#     print("Scanning berhasil.")
-
-#     # Membuat folder baru
-#     os.makedirs(folder_path, exist_ok=True)  # Membuat folder baru jika belum ada
-
-#     print(f"Folder {folder_name} telah dibuat.")
-
-#     # Validasi data yang diinputkan
-#     validasi = input("Apakah data yang diinputkan sudah benar? (y/n): ")
-#     if validasi.lower() != "y":
-#         continue  # Ulangi proses input jika data tidak benar
-
-#     # Membuat tabel dengan nama folder_name di dalam database
-#     create_table_query = f"CREATE TABLE IF NOT EXISTS {folder_name} (id INT AUTO_INCREMENT PRIMARY KEY, \
-#                             nama VARCHAR(255), \
-#                             status_kehadiran VARCHAR(50), \
-#                             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
-#     cursor.execute(create_table_query)
-#     db.commit()
-
-#     print(f"Tabel {folder_name} telah dibuat di database.")
-
-#     # Menanyakan apakah pengambilan foto bisa dimulai
-#     while True:
-#         start_capture = input("Apakah pengambilan foto bisa dimulai? (y/n): ")
-#         if start_capture.lower() == "y":
-#             break
-#         elif start_capture.lower() == "n":
-#             time.sleep(15)
-#         else:
-#             print("Input tidak valid.")
-
-#     # Mengambil gambar selama 15 detik dan menyimpannya di dalam folder baru
-#     start_time = time.time()
-#     capture_duration = 15  # Durasi pengambilan gambar dalam detik
-
-#     while time.time() - start_time < capture_duration:
-#         ret, frame = cap.read()  # Baca frame dari kamera
-
-#         # Display count of images taken
-#         cv2.putText(frame, 'Count:' + str(int(count)), POS, FONT, HEIGHT, TEXTCOLOR, WEIGHT)
-
-#         # Convert frame from BGR to grayscale
-#         frameGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-#         # Create a DS faces- array with 4 elements- x,y coordinates (top-left corner), width and height
-#         faces = FACE_DETECTOR.detectMultiScale(
-#             frameGray,
-#             scaleFactor=1.1,
-#             minNeighbors=5,
-#             minSize=(30, 30)
-#         )
-
-#         for (x, y, w, h) in faces:
-#             # Create a bounding box across the detected face
-#             cv2.rectangle(frame, (x, y), (x + w, y + h), BOXCOLOR, 3)
-#             count += 1  # increment count
-
-#             # Save the captured bounded-grayscale image into the datasets folder only if the same file doesn't exist
-#             file_path = os.path.join(folder_path, f"foto_{int(time.time())}.jpg")
-#             if not os.path.exists(file_path):
-#                 cv2.imwrite(file_path, frameGray[y:y + h, x:x + w])
-
-#         # Display the original frame to the user
-#         cv2.imshow('Pendaftaran Anggota', frame)
-
-#         # Wait for 30 milliseconds for a key event (extract sigfigs) and exit if 'ESC' or 'q' is pressed
-#         key = cv2.waitKey(100) & 0xff
-#         if key == 27:  # ESCAPE key
-#             break
-#         elif key == 113:  # q key
-#             break
-
-#     if key == 27 or key == 113:
-#         break
-
-# # Release the webcam and close all windows
-# print("\n [INFO] Exiting Program and cleaning up stuff")
-# cap.release()
-# cv2.destroyAllWindows()
 
 import cv2
 import os
 import time
 import mysql.connector
 from mfrc522 import SimpleMFRC522
+import RPi.GPIO as GPIO
 
 reader = SimpleMFRC522()
 
@@ -150,7 +17,7 @@ HEIGHT = 1.5  # skala font
 TEXTCOLOR = (0, 0, 255)  # BGR- MERAH
 BOXCOLOR = (255, 0, 255)  # BGR- BIRU
 WEIGHT = 3  # ketebalan font
-FACE_DETECTOR = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+FACE_DETECTOR = cv2.CascadeClassifier('/home/hensenpi/Downloads/Tefa-Attendance-System-main/haarcascade_frontalface_default.xml')
 
 # # Untuk setiap orang, masukkan satu id wajah numerik
 # face_id = input('\n----Masukkan User-id dan tekan <enter>----')
@@ -177,9 +44,9 @@ while True:
     # Validasi apakah tabel di database sudah ada
     db = mysql.connector.connect(
         host="localhost",
-        user="admin",
+        user="user",
         password="123",
-        database="AttendanceTefa"
+        database="absensi"
     )
     cursor = db.cursor()
     cursor.execute(f"SHOW TABLES LIKE '{folder_name}'")
@@ -272,3 +139,4 @@ while True:
 print("\n [INFO] Keluar dari Program dan membersihkan hal-hal")
 cap.release()
 cv2.destroyAllWindows()
+GPIO.cleanup()  # Membersihkan GPIO

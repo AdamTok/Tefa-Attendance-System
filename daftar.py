@@ -30,9 +30,9 @@ try:
         # Koneksi ke database MySQL
         db = mysql.connector.connect(
             host="localhost",
-            user="admin",
+            user="user",
             password="123",
-            database="AttendanceTefa"
+            database="p"
         )
 
         # Cursor untuk menjalankan perintah SQL

@@ -1,149 +1,96 @@
-import cv2
 import os
 import time
 import mysql.connector
 from mfrc522 import SimpleMFRC522
+import RPi.GPIO as GPIO
+import cv2
 
-# Inisialisasi pembaca RFID
 reader = SimpleMFRC522()
 
-# Koneksi ke database MySQL
-db = mysql.connector.connect(
-    host="localhost",
-    user="user",
-    password="qwerty",
-    database="harmonikaabsen"
-)
-
-# Cursor untuk menjalankan perintah SQL
-cursor = db.cursor()
-
-def rfid_check(text2):
-    folder_name = text2.replace(" ", "_")  # Mengganti spasi dengan underscore untuk nama folder
-    folder_path = os.path.join(os.getcwd(), "Datasets_User", folder_name)  # Mendapatkan path folder
-    return os.path.exists(folder_path), folder_name  # Mengembalikan status keberadaan folder dan nama folder
-
-# Parameters
-font = cv2.FONT_HERSHEY_COMPLEX
-height = 1
-boxColor = (0, 0, 255)      # BGR- GREEN
-nameColor = (255, 255, 255) # BGR- WHITE
-confColor = (255, 255, 0)   # BGR- TEAL
-
-face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-recognizer = cv2.face.LBPHFaceRecognizer_create()
-
-# Create an instance of the VideoCapture object for webcam
+# Membuat instance objek VideoCapture untuk webcam
 cap = cv2.VideoCapture(0)
 
 while True:
-    # Capture a frame from the camera
-    ret, frame = cap.read()
-
-    # Convert frame from BGR to grayscale
-    frameGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # Create a DS faces- array with 4 elements- x,y coordinates top-left corner), width and height
-    faces = face_detector.detectMultiScale(
-        frameGray,      # The grayscale frame to detect
-        scaleFactor=1.1,# how much the image size is reduced at each image scale-10% reduction
-        minNeighbors=5, # how many neighbors each candidate rectangle should have to retain it
-        minSize=(150, 150)# Minimum possible object size. Objects smaller than this size are ignored.
-    )
-
-    for (x, y, w, h) in faces:
-        namepos = (x + 5, y - 5) # shift right and up/outside the bounding box from top
-        confpos = (x + 5, y + h - 5) # shift right and up/intside the bounding box from bottom
-        
-        # Create a bounding box across the detected face
-        cv2.rectangle(frame, (x, y), (x + w, y + h), boxColor, 3)
-
-        # Recognize face
-        id, confidence = recognizer.predict(frameGray[y:y+h, x:x+w])
-
-        # If confidence is less than 100, it is considered a perfect match
-        if confidence < 100:
-            confidence = f"{100 - confidence:.0f}%"
-        else:
-            id = "unknown"
-            confidence = f"{100 - confidence:.0f}%"
-
-        # Display name and confidence of person who's face is recognized
-        cv2.putText(frame, str(id), namepos, font, height, nameColor, 2)
-        cv2.putText(frame, str(confidence), confpos, font, height, confColor, 1)
-
-    # Read RFID
-    try:
-        id, text1, text2 = reader.read()
-        print(id, "|", text1, "|", text2)
-
-        # Check if RFID is registered
-        rfid_status, folder_name = rfid_check(text2)
-        if not rfid_status:
-            print("RFID belum terdaftar.")
-            continue
-        
-                # Mengambil waktu saat ini
-        current_time = time.localtime()
-        current_hour = current_time.tm_hour
-        current_minute = current_time.tm_min
-
-        # Membatasi rentang waktu antara jam 9 pagi hingga jam 9:15 pagi
-        if 9 <= current_hour < 9.15:
-            print("Maaf, absen hanya bisa dilakukan di luar jam 9 pagi hingga 9:15 pagi.")
-            continue
+    text1 = input("Nama anggota: ")
+    text2 = input("NIM atau ID Pegawai: ")
     
-        # If RFID is valid, proceed to face recognition process
-        start_time = time.time()
-        while time.time() - start_time < 20:  # Maximum face recognition process for 20 seconds
-            ret, img = cap.read()  # Split video into frames
-            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # Convert frame to grayscale
-            faces = face_detector.detectMultiScale(gray, scaleFactor=1.5, minNeighbors=5)  # Recognize faces
+    # Membuat folder berdasarkan NIM yang baru diinputkan
+    folder_name = text2.replace(" ", "_")  # Mengganti spasi dengan underscore untuk nama folder
+    folder_path = os.path.join(os.getcwd(), "Datasets_User", folder_name)  # Mendapatkan path folder baru
+    
+    # Validasi apakah folder dataset sudah ada
+    if os.path.exists(folder_path):
+        print("Gagal mendaftar, NIM sudah terdaftar.")
+        continue
 
-            for (x, y, w, h) in faces:
-                roi_gray = gray[y:y+h, x:x+w]  # Convert Face to Grayscale
-                
-                # Load the trained model for the current member
-                model_path = os.path.join(os.getcwd(), "Datasets_User", folder_name, "trained", "trainer.yml")
-                recognizer.read(model_path)  # Read the trained model
-                
-                id_, conf = recognizer.predict(roi_gray)  # Recognize Face
+    # Validasi apakah tabel di database sudah ada
+    db = mysql.connector.connect(
+        host="localhost",
+        user="user",
+        password="123",
+        database="absensi"
+    )
+    cursor = db.cursor()
+    cursor.execute(f"SHOW TABLES LIKE '{folder_name}'")
+    if cursor.fetchone():
+        print("Gagal mendaftar, NIM sudah terdaftar.")
+        continue
+    
+    print("Silahkan scan RFID anda.")
+    reader.write(text1 + "," + text2)
+    print("Scanning berhasil.")
 
-                if conf >= 80:
-                    font = cv2.FONT_HERSHEY_SIMPLEX  # Font style for name
-                    name = folder_name  # Use NIM or ID as name
-                    cv2.putText(img, name, (x, y), font, 1, (0, 0, 255), 2)
+    # Membuat folder baru
+    os.makedirs(folder_path, exist_ok=True)  # Membuat folder baru jika belum ada
+    # Membuat folder 'image' dan 'trained' di dalam folder anggota
+    os.makedirs(os.path.join(folder_path, 'image'), exist_ok=True)
+    os.makedirs(os.path.join(folder_path, 'trained'), exist_ok=True)
 
-                    # Send "hadir" status to MySQL database along with current timestamp
-                    timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
-                    sql = f"INSERT INTO {folder_name} (nama, status_kehadiran, timestamp) VALUES (%s, %s, %s)"
-                    val = (name, "hadir", timestamp)
-                    cursor.execute(sql, val)
-                    db.commit()
+    print(f"Folder {folder_name} telah dibuat.")
 
-                    print("Status hadir telah dikirim ke database.")
+    # Validasi data yang diinputkan
+    validasi = input("Apakah data yang diinputkan sudah benar? (y/n): ")
+    if validasi.lower() != "y":
+        continue  # Ulangi proses input jika data tidak benar
 
-                cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    # Membuat tabel dengan nama folder_name di dalam database
+    create_table_query = f"CREATE TABLE IF NOT EXISTS {folder_name} (id INT AUTO_INCREMENT PRIMARY KEY, \
+                            nama VARCHAR(255), \
+                            status_kehadiran VARCHAR(50), \
+                            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+    cursor.execute(create_table_query)
+    db.commit()
 
-            cv2.imshow('Preview', img)  # Show Video
-            if cv2.waitKey(20) & 0xFF == ord('q'):
-                break
+    print(f"Tabel {folder_name} telah dibuat di database.")
 
-    except Exception as e:
-        print(e)
-        break
+    # Menanyakan apakah pengambilan foto bisa dimulai
+    while True:
+        start_capture = input("Apakah pengambilan foto bisa dimulai? (y/n): ")
+        if start_capture.lower() == "y":
+            break
+        elif start_capture.lower() == "n":
+            time.sleep(15)
+        else:
+            print("Input tidak valid.")
 
-    # Display realtime capture output to the user
-    cv2.imshow('Absen', frame)
+    # Mengambil gambar wajah selama 15 detik dan menyimpannya di dalam folder baru
+    start_time = time.time()
+    capture_duration = 15  # Durasi pengambilan gambar dalam detik
 
-    # Wait for 30 milliseconds for a key event (extract sigfigs) and exit if 'ESC' or 'q' is pressed
-    key = cv2.waitKey(100) & 0xff
-    if key == 27:  # ESCAPE key
-        break
-    elif key == 113:  # q key
-        break
+    while time.time() - start_time < capture_duration:
+        ret, frame = cap.read()  # Baca frame dari kamera
 
-# Release the webcam and close all windows
-print("\n [INFO] Exiting Program and cleaning up stuff")
+        # Convert frame dari BGR ke skala abu-abu
+        frameGray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Simpan gambar wajah berwarna ke dalam folder 'image' hanya jika file yang sama belum ada
+        file_path = os.path.join(folder_path, 'image', f"foto_{int(time.time())}.jpg")
+        if not os.path.exists(file_path):
+            cv2.imwrite(file_path, frameGray)
+
+    print("\n [INFO] Pengambilan foto selesai.")
+    break
+
+# Bebaskan webcam
 cap.release()
-cv2.destroyAllWindows()
+GPIO.cleanup()  # Membersihkan GPIO
