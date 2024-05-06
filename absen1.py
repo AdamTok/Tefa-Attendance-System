@@ -179,7 +179,7 @@ def main():
 
     face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
     recognizer = cv2.face.LBPHFaceRecognizer_create()
-    recognizer.read('trained/trainer.yml')
+    recognizer.read('trained/trained.yml')
 
     # Create an instance of the VideoCapture object for webcam
     cap = cv2.VideoCapture(0)
