@@ -92,7 +92,7 @@ def trainRecognizer(faces, ids, trained_path):
     recognizer.write(os.path.join(trained_path, 'trained.yml'))
 
 # Proses training untuk setiap folder dalam direktori dataset
-print("\n Melatih wajah. Ini akan memakan beberapa detik...")
+print("\n Melatih wajah. Ini akan memakan waktu beberapa detik...")
 for nim_folder in os.listdir(base_path):
     nim_folder_path = os.path.join(base_path, nim_folder)
     if os.path.isdir(nim_folder_path):

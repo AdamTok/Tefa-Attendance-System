@@ -178,8 +178,10 @@ def main():
     confColor = (255, 255, 0)   # BGR- TEAL
 
     face_detector = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+    # Membaca model yang dilatih dari folder trainedp
     recognizer = cv2.face.LBPHFaceRecognizer_create()
-    recognizer.read('trained/trained.yml')
+    recognizer.read(os.path.join('Datasets_User', folder_name, 'trained', 'trained.yml'))
 
     # Create an instance of the VideoCapture object for webcam
     cap = cv2.VideoCapture(0)
@@ -193,7 +195,7 @@ def main():
             # Check if RFID is registered
             rfid_status, folder_name = rfid_check(text2)
             if not rfid_status:
-                print("RFID belum terdaftar.")
+                print("RFID belum terdaftar. Harap daftar terlebih dahulu")
                 continue
             
             # Mengambil waktu saat ini
@@ -208,7 +210,7 @@ def main():
         
             # If RFID is valid, proceed to face recognition process
             start_time = time.time()
-            while time.time() - start_time < 30:  # Maximum face recognition process for 20 seconds
+            while time.time() - start_time < 30:  # Maximum face recognition process for 30 seconds
                 # Capture a frame from the camera
                 ret, frame = cap.read()
 
@@ -230,7 +232,7 @@ def main():
                     # Create a bounding box across the detected face
                     cv2.rectangle(frame, (x, y), (x + w, y + h), boxColor, 3)
 
-                    # Recognize face
+                    # Recognize face using the trained model
                     id, confidence = recognizer.predict(frameGray[y:y+h, x:x+w])
 
                     # If confidence is less than 100, it is considered a perfect match
@@ -245,7 +247,7 @@ def main():
                     cv2.putText(frame, str(id), namepos, font, height, nameColor, 2)
                     cv2.putText(frame, str(confidence), confpos, font, height, confColor, 1)
 
-                    if confidence >= 80:
+                    if confidence >= 100:
                         # Send "hadir" status to MySQL database along with current timestamp
                         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
                         sql = f"INSERT INTO {folder_name} (nama, status_kehadiran, timestamp) VALUES (%s, %s, %s)"
