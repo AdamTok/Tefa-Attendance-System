@@ -202,6 +202,14 @@ import cv2
 
 reader = SimpleMFRC522()
 
+# Inisialisasi pin GPIO untuk LED
+led_green_pin = 17  # Ganti dengan pin yang sesuai
+led_red_pin = 22    # Ganti dengan pin yang sesuai
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(led_green_pin, GPIO.OUT)
+GPIO.setup(led_red_pin, GPIO.OUT)
+
 # Membuat instance objek VideoCapture untuk webcam
 cap = cv2.VideoCapture(0)
 

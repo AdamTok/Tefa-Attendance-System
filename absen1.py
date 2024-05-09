@@ -149,9 +149,17 @@ import os
 import time
 import mysql.connector
 from mfrc522 import SimpleMFRC522
+import RPi.GPIO as GPIO
 
 # Inisialisasi pembaca RFID
 reader = SimpleMFRC522()
+
+led_green_pin = 17
+led_red_pin = 22
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(led_green_pin, GPIO.OUT)
+GPIO.setup(led_red_pin, GPIO.OUT)
 
 # Koneksi ke database MySQL
 db = mysql.connector.connect(
@@ -196,8 +204,15 @@ def main():
             rfid_status, folder_name = rfid_check(text2)
             if not rfid_status:
                 print("RFID belum terdaftar. Harap daftar terlebih dahulu")
+                GPIO.output(led_red_pin, GPIO.HIGH)  
+                time.sleep(2)
+                GPIO.output(led_red_pin, GPIO.LOW)
                 continue
-            
+            else:
+                GPIO.output(led_green_pin, GPIO.HIGH)  
+                time.sleep(1)
+                GPIO.output(led_green_pin, GPIO.LOW)
+
             # Mengambil waktu saat ini
             current_time = time.localtime()
             current_hour = current_time.tm_hour
@@ -207,7 +222,7 @@ def main():
             if 9 <= current_hour < 9.15:
                 print("Maaf, absen hanya bisa dilakukan di luar jam 9 pagi hingga 9:15 pagi.")
                 continue
-        
+
             # If RFID is valid, proceed to face recognition process
             start_time = time.time()
             while time.time() - start_time < 30:  # Maximum face recognition process for 30 seconds
@@ -228,7 +243,7 @@ def main():
                 for (x, y, w, h) in faces:
                     namepos = (x + 5, y - 5) # shift right and up/outside the bounding box from top
                     confpos = (x + 5, y + h - 5) # shift right and up/intside the bounding box from bottom
-                    
+
                     # Create a bounding box across the detected face
                     cv2.rectangle(frame, (x, y), (x + w, y + h), boxColor, 3)
 
@@ -239,9 +254,15 @@ def main():
                     if confidence < 100:
                         id = "Wajah Dikenali."
                         confidence = f"{100 - confidence:.0f}%"
+                        GPIO.output(led_green_pin, GPIO.HIGH)  
+                        time.sleep(3)
+                        GPIO.output(led_green_pin, GPIO.LOW)
                     else:
                         id = "Wajah Tidak Dikenali."
                         confidence = f"{100 - confidence:.0f}%"
+                        GPIO.output(led_red_pin, GPIO.HIGH)  
+                        time.sleep(2)
+                        GPIO.output(led_red_pin, GPIO.LOW)
 
                     # Display name and confidence of person who's face is recognized
                     cv2.putText(frame, str(id), namepos, font, height, nameColor, 2)
