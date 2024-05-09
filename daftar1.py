@@ -199,16 +199,18 @@ import mysql.connector
 from mfrc522 import SimpleMFRC522
 import RPi.GPIO as GPIO
 import cv2
+import buzzer 
 
 reader = SimpleMFRC522()
 
-# Inisialisasi pin GPIO untuk LED
-led_green_pin = 17  # Ganti dengan pin yang sesuai
-led_red_pin = 22    # Ganti dengan pin yang sesuai
+led_green_pin = 17  
+led_red_pin = 22
+buzzer_pin = 27 
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(led_green_pin, GPIO.OUT)
 GPIO.setup(led_red_pin, GPIO.OUT)
+GPIO.setup(buzzer_pin, GPIO.OUT) 
 
 # Membuat instance objek VideoCapture untuk webcam
 cap = cv2.VideoCapture(0)
