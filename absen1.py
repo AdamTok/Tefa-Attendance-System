@@ -164,8 +164,8 @@ db = mysql.connector.connect(
 # Cursor untuk menjalankan perintah SQL
 cursor = db.cursor()
 
-def rfid_check(text2):
-    folder_name = text2.replace(" ", "_")  # Mengganti spasi dengan underscore untuk nama folder
+def rfid_check(uid):
+    folder_name = str(uid)  # Mengganti spasi dengan underscore untuk nama folder
     folder_path = os.path.join(os.getcwd(), "Datasets_User", folder_name)  # Mendapatkan path folder
     return os.path.exists(folder_path), folder_name  # Mengembalikan status keberadaan folder dan nama folder
 
@@ -181,7 +181,8 @@ def main():
 
     # Membaca model yang dilatih dari folder trainedp
     recognizer = cv2.face.LBPHFaceRecognizer_create()
-    recognizer.read(os.path.join('Datasets_User', folder_name, 'trained', 'trained.yml'))
+    # recognizer.read(os.path.join('Datasets_User', folder_name, 'trained', 'trained.yml'))
+    recognizer.read(os.path.join(os.getcwd(), f"{folder_name}.yml"))
 
     # Create an instance of the VideoCapture object for webcam
     cap = cv2.VideoCapture(0)
@@ -189,11 +190,11 @@ def main():
     while True:
         # Read RFID
         try:
-            id, text1, text2 = reader.read()
-            print(id, "|", text1, "|", text2)
+            uid = reader.read()
+            print(uid)
 
             # Check if RFID is registered
-            rfid_status, folder_name = rfid_check(text2)
+            rfid_status, folder_name = rfid_check(uid)
             if not rfid_status:
                 print("RFID belum terdaftar. Harap daftar terlebih dahulu")
                 continue
@@ -204,9 +205,9 @@ def main():
             current_minute = current_time.tm_min
 
             # Membatasi rentang waktu antara jam 9 pagi hingga jam 9:15 pagi
-            if 9 <= current_hour < 9.15:
-                print("Maaf, absen hanya bisa dilakukan di luar jam 9 pagi hingga 9:15 pagi.")
-                continue
+            # if 9 <= current_hour < 9.15:
+            #     print("Maaf, absen hanya bisa dilakukan di luar jam 9 pagi hingga 9:15 pagi.")
+            #     continue
         
             # If RFID is valid, proceed to face recognition process
             start_time = time.time()
@@ -236,7 +237,7 @@ def main():
                     id, confidence = recognizer.predict(frameGray[y:y+h, x:x+w])
 
                     # If confidence is less than 100, it is considered a perfect match
-                    if confidence < 100:
+                    if confidence <= 100:
                         id = "Wajah Dikenali."
                         confidence = f"{100 - confidence:.0f}%"
                     else:
